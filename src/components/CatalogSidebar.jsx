@@ -123,7 +123,7 @@ const CatalogSidebar = ({ sessionInfo, onExecuteQuery, isExecuting }) => {
 
   if (!sessionInfo.isActive) {
     return (
-      <div className="catalog-sidebar">
+      <>
         <div className="sidebar-header">
           <div className="flex items-center gap-2">
             <Database className="w-5 h-5 text-blue-400" />
@@ -137,12 +137,12 @@ const CatalogSidebar = ({ sessionInfo, onExecuteQuery, isExecuting }) => {
             <p className="text-xs mt-1">Start a session to view catalogs</p>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="catalog-sidebar">
+    <>
       <div className="sidebar-header">
         <div className="flex items-center gap-2">
           <Database className="w-5 h-5 text-blue-400" />
@@ -151,7 +151,7 @@ const CatalogSidebar = ({ sessionInfo, onExecuteQuery, isExecuting }) => {
         <button
           onClick={handleRefresh}
           disabled={isLoading || isExecuting}
-          className="p-1 hover:bg-gray-700 rounded disabled:opacity-50"
+          className="btn-icon-only btn-secondary disabled:opacity-50"
           title="Refresh Catalogs"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -213,7 +213,7 @@ const CatalogSidebar = ({ sessionInfo, onExecuteQuery, isExecuting }) => {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 };
 

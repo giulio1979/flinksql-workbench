@@ -6,11 +6,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
+    allowedHosts: true, // Allow all hosts
     proxy: {
       // Proxy all /api/flink requests to the Flink SQL Gateway
       '/api/flink': {
-        target: 'http://localhost:8083',
+        target: process.env.FLINK_HOST || 'http://localhost:8083',
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/api\/flink/, ''),
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
@@ -25,5 +27,9 @@ export default defineConfig({
         }
       }
     }
+  },
+  preview: {
+    host: '0.0.0.0', // Allow all hostnames for preview mode
+    port: 4173
   }
 })

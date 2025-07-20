@@ -6,6 +6,7 @@ import ExecutionHistory from './components/ExecutionHistory';
 import SessionInfo from './components/SessionInfo';
 import CatalogSidebar from './components/CatalogSidebar';
 import { flinkApi, sessionManager } from './services/index.js';
+import { useResizable } from './hooks/useResizable.js';
 
 const DEFAULT_QUERY = `-- Welcome to Flink SQL Editor
 -- Example queries to get you started:
@@ -40,6 +41,12 @@ function App() {
   const [showDebug, setShowDebug] = useState(true); // Start with debug panel open
   const [showDebugLogs, setShowDebugLogs] = useState(false); // Hide logs by default
   const [debugLogs, setDebugLogs] = useState([]);
+  const [activeBottomTab, setActiveBottomTab] = useState('history'); // 'history' or 'logs'
+  
+  // Resizable panels
+  const sidebarResize = useResizable(240, 200, 400, 'vertical', 'sidebar');
+  const editorPanelResize = useResizable(window.innerWidth * 0.4, 200, window.innerWidth * 0.7, 'vertical', 'editor-results');
+  const bottomPanelResize = useResizable(200, 100, window.innerHeight * 0.5, 'horizontal');
   const [sessionInfo, setSessionInfo] = useState({
     sessionHandle: null,
     isActive: false,
@@ -376,7 +383,7 @@ function App() {
           <div className="header-controls-group">
             <button
               onClick={handleNewSession}
-              className="btn-success"
+              className="btn-success btn-compact"
               title="Start New Session (closes current session)"
             >
               <Plus className="w-4 h-4" />
@@ -386,7 +393,7 @@ function App() {
               <>
                 <button
                   onClick={handleRefreshSession}
-                  className="btn-primary"
+                  className="btn-primary btn-compact"
                   title="Refresh Session"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -394,7 +401,7 @@ function App() {
                 </button>
                 <button
                   onClick={handleCloseSession}
-                  className="btn-danger"
+                  className="btn-danger btn-compact"
                   title="Close Session"
                 >
                   <X className="w-4 h-4" />
@@ -407,15 +414,6 @@ function App() {
           {/* App Controls */}
           <div className="header-controls-group">
             <button
-              onClick={() => setShowDebugLogs(!showDebugLogs)}
-              className={showDebugLogs ? "btn-success" : "btn-secondary"}
-              title="Toggle Debug Logs"
-            >
-              <Bug className="w-4 h-4" />
-              {showDebugLogs ? 'Hide Logs' : 'Show Logs'}
-            </button>
-            
-            <button
               onClick={() => setShowSettings(!showSettings)}
               className="btn-secondary"
               title="Settings"
@@ -427,64 +425,22 @@ function App() {
       </header>
 
       <div className="app-content">
-        <CatalogSidebar
-          sessionInfo={sessionInfo}
-          onExecuteQuery={executeQueryForSidebar}
-          isExecuting={isExecuting}
-        />
-        
-        <div className="main-area">
-          {showDebugLogs && (
-            <div className="debug-panel">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="flex items-center gap-2">
-                  <Bug className="w-5 h-5" />
-                  Debug Console
-                </h3>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setDebugLogs([])}
-                    className="btn-danger"
-                  >
-                    Clear Logs
-                  </button>
-                  <button 
-                    onClick={() => setShowDebugLogs(false)}
-                    className="btn-secondary"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="debug-logs mb-4">
-                {debugLogs.length === 0 ? (
-                  <div className="text-gray-500">No debug logs yet...</div>
-                ) : (
-                  debugLogs.map((log, index) => (
-                    <div key={index} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : 'text-green-400'}`}>
-                      <span className="text-gray-500">[{log.timestamp}]</span> {log.message}
-                    </div>
-                  ))
-                )}
-              </div>
-              
-              <div className="text-sm text-gray-400 grid grid-cols-2 gap-4">
-                <div>
-                  <strong className="text-white">Connection:</strong>
-                  <div>• Flink URL: {flinkUrl}</div>
-                  <div>• API Version: {flinkApi.apiVersion || 'Not detected'}</div>
-                  <div>• Status: {flinkInfo ? '✅ Connected' : '❌ Disconnected'}</div>
-                </div>
-                <div>
-                  <strong className="text-white">Session:</strong>
-                  <div>• {sessionInfo.isActive ? `✅ Active (${sessionInfo.sessionHandle?.substring(0, 8)}...)` : '❌ No Session'}</div>
-                  <div>• Debug Logs: {debugLogs.length} entries</div>
-                </div>
-              </div>
-            </div>
-          )}
+        <div 
+          className="catalog-sidebar"
+          style={{ width: sidebarResize.size }}
+        >
+          <CatalogSidebar
+            sessionInfo={sessionInfo}
+            onExecuteQuery={executeQueryForSidebar}
+            isExecuting={isExecuting}
+          />
+        </div>
 
+        <div 
+          className="resize-handle-vertical"
+          onMouseDown={sidebarResize.startResize}
+        ></div>
+        <div className="main-area">
           {showSettings && (
             <div className="settings-panel">
               <div className="config-section">
@@ -503,23 +459,26 @@ function App() {
               {!flinkInfo && (
                 <p className="text-sm text-red-400 mt-4 flex items-center gap-2">
                   <Info className="w-4 h-4" />
-                  Unable to connect to Flink SQL Gateway. Please check the URL and ensure the gateway is running.
+                  Unable to connect to Flink SQL Gateway.
                 </p>
               )}
             </div>
           )}
 
-          <div className="main-content">
-            <div className="editor-panel">
+          <div className="main-content resizable-container">
+            <div 
+              className="editor-panel resizable-panel-left"
+              style={{ width: editorPanelResize.size }}
+            >
               <div className="panel-header">
-                <h2 className="text-lg font-semibold">SQL Query</h2>
+                <h2>SQL Query</h2>
                 <button
                   onClick={executeSelectedQuery}
                   disabled={isExecuting || !query.trim()}
-                  className="execute-button"
+                  className="btn-primary"
                 >
                   <Play className="w-4 h-4" />
-                  {isExecuting ? 'Executing...' : 'Execute (Ctrl+Enter)'}
+                  {isExecuting ? 'Executing...' : 'Execute'}
                 </button>
               </div>
               <div className="panel-content">
@@ -531,16 +490,16 @@ function App() {
                   isExecuting={isExecuting}
                 />
               </div>
-              <ExecutionHistory
-                history={history}
-                onSelectExecution={handleSelectExecution}
-                onClearHistory={handleClearHistory}
-              />
             </div>
 
-            <div className="results-panel">
+            <div 
+              className="resize-handle-vertical"
+              onMouseDown={editorPanelResize.startResize}
+            ></div>
+
+            <div className="results-panel resizable-panel-right">
               <div className="panel-header">
-                <h2 className="text-lg font-semibold">Results</h2>
+                <h2>Results</h2>
                 {result && result.status === 'FINISHED' && result.results && (
                   <span className="text-sm text-gray-400">
                     {result.results.length} row{result.results.length !== 1 ? 's' : ''}
@@ -550,6 +509,70 @@ function App() {
               <div className="panel-content">
                 <ResultsDisplay result={result} isExecuting={isExecuting} />
               </div>
+            </div>
+          </div>
+
+          {/* Horizontal Resize Handle */}
+          <div 
+            className="resize-handle-horizontal"
+            onMouseDown={bottomPanelResize.startResize}
+          ></div>
+
+          {/* VS Code Bottom Panel */}
+          <div 
+            className="bottom-panel"
+            style={{ height: bottomPanelResize.size }}
+          >
+            <div className="bottom-panel-header">
+              <div className="bottom-panel-tabs">
+                <button 
+                  className={`bottom-tab ${activeBottomTab === 'history' ? 'active' : ''}`}
+                  onClick={() => setActiveBottomTab('history')}
+                >
+                  History
+                </button>
+                <button 
+                  className={`bottom-tab ${activeBottomTab === 'logs' ? 'active' : ''}`}
+                  onClick={() => setActiveBottomTab('logs')}
+                >
+                  Debug Logs
+                </button>
+              </div>
+              <button
+                onClick={activeBottomTab === 'history' ? handleClearHistory : () => setDebugLogs([])}
+                className="btn-secondary"
+                title={activeBottomTab === 'history' ? 'Clear History' : 'Clear Logs'}
+              >
+                Clear
+              </button>
+            </div>
+            <div className="bottom-panel-content">
+              {activeBottomTab === 'history' ? (
+                <ExecutionHistory
+                  history={history}
+                  onSelectExecution={handleSelectExecution}
+                  onClearHistory={handleClearHistory}
+                />
+              ) : (
+                <div className="debug-logs">
+                  {debugLogs.length === 0 ? (
+                    <div style={{ color: 'var(--vscode-text-secondary)', padding: '8px' }}>
+                      No debug logs yet...
+                    </div>
+                  ) : (
+                    debugLogs.map((log, index) => (
+                      <div key={index} style={{ marginBottom: '4px' }}>
+                        <span style={{ color: 'var(--vscode-text-secondary)' }}>
+                          [{log.timestamp}]
+                        </span>{' '}
+                        <span style={{ color: log.type === 'error' ? 'var(--vscode-red)' : 'var(--vscode-green)' }}>
+                          {log.message}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
